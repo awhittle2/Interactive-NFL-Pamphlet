@@ -1,0 +1,4 @@
+﻿Coding Standing
+
+
+The Agile process for our team included two week long sprints in which our team communicated through discord consistently and met at least once, if not up to three times a week. During meetings we discussed any issues or problems and tried to resolve them. Everyone within the group played a different role, be it scrum master or team member. Scrum master logged team meetings while the Product owner documented the backlog. We used GITHUB for management and QT for our GUI.
