@@ -38,11 +38,10 @@ private slots:
 
     void displayConference(QAction* action);
 
-    // Redisplays the menu for selecting what conference to show.
     void redisplayConferenceMenu();
 
 private:
     Ui::MainWindow* ui;
     QHeaderView* tableHeader;
 };
-#endif // MAINWINDOW_H
+#endif
