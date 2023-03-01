@@ -3,9 +3,7 @@
 #include "csv.h"
 
 
-namespace csv
-{
-
+namespace csv {
     // Reads an entire line from a csv stream, returning the number of items read.
     // All items will be pushed to the back of the vector `output`. Ensure that
     // :param csvStream: is a binary stream with \r\n line endings that are not
@@ -18,8 +16,7 @@ namespace csv
     // Throws csv::InvalidFileModeError if the fstream is not in binary input mode.
     // Throws csv::UnexpectedEndOfStreamError if the stream ended while the
     // function was expecting more input.
-    std::size_t readLine(std::istream& csvStream, std::vector<std::string>& output, const char sep)
-    {
+    std::size_t readLine(std::istream& csvStream, std::vector<std::string>& output, const char sep) {
         // The current line we will be using to read from.
         std::string line;
         // The current item we are reading.
@@ -40,119 +37,93 @@ namespace csv
         char character;
 
 
-        if (csvStream.peek() != EOF)
-        {
+        if (csvStream.peek() != EOF) {
             // Go through each character and figure out what to do with it.
-            do
-            {
+            do {
                 character = csvStream.get();
 
                 // We need to quickly make sure we handle the last character being \r
                 // outside of a quoted entry and the next one not being \n. If this
                 // happens then we have invalid input.
-                if (foundCR && character != '\n')
-                {
+                if (foundCR && character != '\n') {
                     throw UnexpectedCharacterError("Expected a '\\n' after the '\r' in an unquoted string, but got\"" + std::to_string(character) + "\"instead.");
                 }
 
-                switch (character)
-                {
+                switch (character) {
                 case '"':
                     // If the first character was a quote, then another quote may be
-                    if (quoted)
-                    {
-                        if (foundQuote)
-                        {
+                    if (quoted) {
+                        if (foundQuote) {
                             foundQuote = false;
                             item += '"';
                         }
-                        else
-                        {
+                        else {
                             foundQuote = true;
                         }
                     }
-                    else if (item.length() == 0) // If we are reading the first character and it's a quote, then
-                    {
+                    else if (item.length() == 0) { // If we are reading the first character and it's a quote, then 
                         quoted = true;
                     }
-                    else // Based on the standard, this is invalid, so we throw an exception.
-                    {
+                    else { // Based on the standard, this is invalid, so we throw an exception.
                         throw UnexpectedCharacterError("Got unexpected quotation mark.");
                     }
                     break;
                 case '\r':
-                    if (quoted)
-                    {
+                    if (quoted) {
                         item += '\r';
                     }
-                    else
-                    {
+                    else {
                         foundCR = true;
                     }
                     break;
                 case '\n':
-                    if (quoted)
-                    {
+                    if (quoted) {
                         item += '\n';
                     }
-                    else
-                    {
+                    else {
                         foundCR = false;
                         lineDone = true;
                     }
                     break;
                 default:
-                    if (character == sep)
-                    {
-                        if (quoted)
-                        {
-                            if (foundQuote)
-                            {
+                    if (character == sep) {
+                        if (quoted) {
+                            if (foundQuote) {
                                 foundQuote = false;
                                 quoted = false;
                                 output.push_back(item);
                                 item = "";
                                 count++;
                             }
-                            else
-                            {
+                            else {
                                 item += sep;
                             }
                         }
-                        else
-                        {
+                        else {
                             output.push_back(item);
                             item = "";
                             count++;
                         }
                     }
-                    else
-                    {
+                    else {
                         item += character;
                     }
                     break;
                 }
             } while(csvStream.peek() != EOF && !lineDone);
-
             // If a quote is still open by the end of it, then we have malformed input.
-            if (quoted && !foundQuote)
-            {
+            if (quoted && !foundQuote) {
                 throw UnclosedQuoteError("Found a quote that was opened by never closed.");
             }
-
             // If the last character was a '\r' and the stream ended, throw an exception.
-            if (foundCR)
-            {
+            if (foundCR) {
                 throw UnexpectedEndOfStreamError("Stream ended while waiting for a '\\n' to match the '\\r'.");
             }
-
             output.push_back(item);
             count++;
         }
-
         return count;
     }
-
 
     // Takes in a file stream as well as a vector of string vectors and uses it as
     // an output. If :param strict: is true then it will check to make sure every
@@ -165,8 +136,7 @@ namespace csv
     // Returns the highest number of entries read.
     //
     // Throws std::length_error if in strict mode and the line lengths are not equal.
-    std::size_t readStream(std::istream& csvStream, std::vector<std::vector<std::string>>& output, std::size_t lineCount, bool strict)
-    {
+    std::size_t readStream(std::istream& csvStream, std::vector<std::vector<std::string>>& output, std::size_t lineCount, bool strict) {
         std::size_t maxTokens = 0;
         std::size_t tokensRead = 0;
 
@@ -182,50 +152,41 @@ namespace csv
 
         std::vector<std::string> nextLine;
 
-        while (csvStream.peek() != EOF && (lineCount == 0 || lines < lineCount))
-        {
+        while (csvStream.peek() != EOF && (lineCount == 0 || lines < lineCount)) {
             tokensRead = readLine(csvStream, nextLine);
             outputVector.push_back(nextLine);
             nextLine.clear();
-            if (lines == 0)
-            {
+            if (lines == 0) {
                 maxTokens = tokensRead;
             }
-            if (strict && maxTokens != tokensRead)
-            {
+            if (strict && maxTokens != tokensRead) {
                 throw std::length_error("Previously got " + std::to_string(maxTokens) + " tokens but the last line had " + std::to_string(tokensRead) + ".");
             }
 
             lines++;
         }
 
-        if (strict)
-        {
+        if (strict) {
             // If strict is true and we have gotten to this point then the lines should
             // all be perfectly fine. We can just copy everything now.
-            for (int i = 0; i < outputVector.size(); i++)
-            {
+            for (int i = 0; i < outputVector.size(); i++) {
                 output.push_back(outputVector[i]);
             }
         }
-
         return maxTokens;
     }
-
 
     // Identical to csv:readStream except it takes in a file name instead of a stream.
     //
     // Throws csv::FileError if the file could not be opened.
-    std::size_t readFile(const char* fileName, std::vector<std::vector<std::string>>& output, std::size_t lineCount, bool strict)
-    {
+    std::size_t readFile(const char* fileName, std::vector<std::vector<std::string>>& output, std::size_t lineCount, bool strict) {
         std::ifstream csvFile;
 
         // Open the file in binary read mode.
         csvFile.open(fileName, std::ios::in | std::ios::binary);
 
         // Check to see if the file opened.
-        if (csvFile.fail())
-        {
+        if (csvFile.fail()) {
             throw FileError("Could not open the file.");
         }
 
@@ -239,14 +200,10 @@ namespace csv
         return tokens;
     }
 
-
     // Overload that makes it so that string file names are easily allowed.
-    std::size_t readFile(std::string fileName, std::vector<std::vector<std::string>>& output, std::size_t lineCount, bool strict)
-    {
+    std::size_t readFile(std::string fileName, std::vector<std::vector<std::string>>& output, std::size_t lineCount, bool strict) {
         return readFile(fileName.c_str(), output, lineCount, strict);
     }
-
-
 
     //#### Exceptions ####//
 
